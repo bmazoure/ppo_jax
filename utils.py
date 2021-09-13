@@ -27,7 +27,7 @@ def optimize(
     if max_grad_norm is not None:
         grad = clip_gradient_norm(grad, max_grad_norm)
     opt_state = opt(step, grad, opt_state)
-    # params_to_update = optimizers.apply_updates(params_to_update, update)
+    
     return opt_state, loss, aux
 
 def fake_state(state_space):
@@ -97,21 +97,20 @@ def replace_params(filter_s,filter_t,params_s,params_t):
         new_name='/'.join(module_name.split('/')[2:])
         new_name = template_name + '/' + new_name
         params_t[new_name]=value
-    import ipdb;ipdb.set_trace()
+        
     return params_t #hk.data_structures.to_immutable_dict(params_t)
 
-def evaluate(env,algo,num_episodes):
+def evaluate(env, select_action, train_state, num_episodes):
     total_return = 0.0
     eps_count = 0
     state = env.reset()
     while eps_count < num_episodes:
-        action = algo.select_action(state.astype(jnp.float32)/255.)  ## faut prendre le argmax la
+        action = select_action(train_state, state.astype(jnp.float32)/255.)
         state, reward, done, info = env.step(action)
         for inf in info:
             if 'episode' in inf:
                 ep_ret = inf['episode']['r']
                 total_return += ep_ret
         eps_count += np.sum(done)
-    # Log mean return.
     mean_return = total_return / num_episodes
     return mean_return

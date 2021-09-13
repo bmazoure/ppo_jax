@@ -1,8 +1,10 @@
 import flax.linen as nn
 import jax.numpy as jnp
 
-from typing import Any, Tuple
+from typing import Any, Tuple, Optional
 
+def default_init(scale: Optional[float] = jnp.sqrt(2)):
+    return nn.initializers.orthogonal(scale)
 
 class MLP(nn.Module):
     """Simple MLP """
@@ -13,9 +15,9 @@ class MLP(nn.Module):
     @nn.compact
     def __call__(self, x):
         for i, unit in enumerate(self.hidden_units):
-            x = nn.Dense(unit, name=self.prefix + '_mlp_%d' % i)(x)
+            x = nn.Dense(unit, kernel_init=default_init(), name=self.prefix + '_mlp_%d' % i)(x)
             x = nn.relu(x)
-        x = nn.Dense(self.output_dim,
+        x = nn.Dense(self.output_dim, kernel_init=default_init(),
                      name=self.prefix + '_mlp_%d' % (i + 1))(x)
         return x
 
@@ -33,12 +35,14 @@ class ResidualBlock(nn.Module):
                     kernel_size=[3, 3],
                     strides=(1, 1),
                     padding='SAME',
+                    kernel_init=default_init(),
                     name=self.prefix + '/conv2d_1')(y)
         y = nn.relu(y)
         y = nn.Conv(self.num_channels,
                     kernel_size=[3, 3],
                     strides=(1, 1),
                     padding='SAME',
+                    kernel_init=default_init(),
                     name=self.prefix + '/conv2d_2')(y)
 
         return y + x
@@ -57,6 +61,7 @@ class Impala(nn.Module):
                            kernel_size=[3, 3],
                            strides=(1, 1),
                            padding='SAME',
+                           kernel_init=default_init(),
                            name=self.prefix + '/conv2d_%d' % i)
             out = conv(out)
 
@@ -78,7 +83,7 @@ class Impala(nn.Module):
 
 class TwinHeadModel(nn.Module):
     """Critic+Actor for PPO."""
-    action_space: Any
+    action_dim: int
     prefix_critic: str = "critic"
     prefix_actor: str = "policy"
 
@@ -86,9 +91,10 @@ class TwinHeadModel(nn.Module):
     def __call__(self, x):
         z = Impala(prefix='shared_encoder')(x)
         # Linear critic
-        v = nn.Dense(1, name=self.prefix_critic + '/fc_v')(z)
+        v = nn.Dense(1, kernel_init=default_init(), name=self.prefix_critic + '/fc_v')(z)
 
-        out2 = nn.Dense(self.action_space.n,
+        out2 = nn.Dense(self.action_dim,
+                        kernel_init=default_init(),
                         name=self.prefix_actor + '/fc_pi')(z)
 
         pi_s = nn.softmax(out2, axis=1)
