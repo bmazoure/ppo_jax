@@ -1,32 +1,36 @@
-import numpy as np
-from gym.spaces import Box, Discrete
-import jax
 from functools import partial
-from typing import Any, Callable, Tuple, List
+from typing import Tuple
+
+import jax
 import jax.numpy as jnp
+import numpy as np
+
 
 @partial(jax.jit)
 def calculate_gae(
+    n_steps: int,
+    discount: float,
+    gae_lambda: float,
     value: np.ndarray,
     reward: np.ndarray,
-    done: np.ndarray,
-    discount: float,
-    gae_lambda: float
-) -> Tuple[jnp.ndarray, jnp.ndarray]:
+    done: np.ndarray
+) -> Tuple[np.ndarray, np.ndarray]:
     advantages = []
     gae = 0.
-    for t in reversed(range(len(value)-1)):
-        value_diff = discount * value[t + 1] * done[t] - value[t]
+    for t in reversed(range(len(reward)-1)):
+        value_diff = discount * value[t + 1] * (1-done[t]) - value[t]
         delta = reward[t] + value_diff
-        gae = delta + discount * gae_lambda * done[t] * gae
+        gae = delta + discount * gae_lambda * (1-done[t]) * gae
         advantages.append(gae)
-    advantages = jnp.array(advantages)
     advantages = advantages[::-1]
+    advantages = jnp.array(advantages)
     return advantages, advantages + value[:-1]
 
 class Batch:
     """
     Batch of data.
+
+    Inspired by: https://github.com/ku2482/rljax/tree/master/rljax/algorithm .
     """
 
     def __init__(
@@ -39,6 +43,7 @@ class Batch:
     ):
         self._n = 0
         self._p = 0
+        self.num_envs = num_envs
         self.buffer_size = num_envs * n_steps
         self.num_envs = num_envs
         self.n_steps = n_steps
@@ -69,19 +74,19 @@ class Batch:
         self._n = min(self._n + 1, self.n_steps)
 
     def get(self):
-        # Calculate gamma-returns and GAEs.
         gae, target = calculate_gae(
+            n_steps=self.n_steps,
+            discount=self.discount,
+            gae_lambda=self.gae_lambda,
             value=self.values_old,
             reward=self.rewards,
-            done=self.dones,
-            discount=self.discount,
-            gae_lambda=self.gae_lambda
+            done=self.dones
         )
         batch = (
-            self.states,
-            self.actions,
-            self.log_pis_old,
-            self.values_old,
+            self.states[:-1],
+            self.actions[:-1],
+            self.log_pis_old[:-1],
+            self.values_old[:-1],
             target,
             gae
         )
