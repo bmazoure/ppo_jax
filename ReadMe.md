@@ -20,7 +20,7 @@ To install all requirements all at once, run
 pip install -r requirements.txt
 ```
 
-## Use
+## Use [Training]
 
 After installing Jax, simply run
 
@@ -32,10 +32,20 @@ to train PPO on bigfish on 200M frames. Right now all returns reported on the W&
 
 and validating both on the same 200 levels as well as the entire "easy" distribution (this can be changed in the `train_ppo.py` file).
 
+## Use [Evaluation]
+
+The code automatically saves the most recent training state checkpoint, which can then be loaded to evaluate the PPO policies. Pre-trained policy weights for 25M frames are included in the repo in the `ppo_weights_25M.zip` zip file.
+
+To evaluate the pre-trained policies, run
+
+```
+wget https://www.dropbox.com/s/2jrcf3ebexeppbt/ppo_weights_25M.zip?dl=1
+unzip ppo_weights_25M.zip?dl=1
+python evaluate_ppo.py --env_name="starpilot" --model_dir="model_weights"
+```
+
 ## Results
 
 See this W&B report for aggregate performance metrics on all 16 games (easy mode, 200 training levels and all test levels):
 
 [Link to results](https://wandb.ai/bmazoure/ppo_procgen_jax/reports/PPO-Procgen-JAX-version---VmlldzoxMDM4MjAx)
-
-Model weights for 25M timesteps will be released soon.
