@@ -49,3 +49,18 @@ python evaluate_ppo.py --env_name="starpilot" --model_dir="model_weights"
 See this W&B report for aggregate performance metrics on all 16 games (easy mode, 200 training levels and all test levels):
 
 [Link to results](https://wandb.ai/bmazoure/ppo_procgen_jax/reports/PPO-Procgen-JAX-version---VmlldzoxMDM4MjAx)
+
+## Cite
+
+To cite this repo in your publications, use
+
+```
+@misc{ppojax,
+  author = {Mazoure, Bogdan},
+  title = {Jax implementation of PPO},
+  year = {2021},
+  publisher = {GitHub},
+  journal = {GitHub repository},
+  howpublished = {\url{https://github.com/bmazoure/ppo_jax}},
+}
+```
