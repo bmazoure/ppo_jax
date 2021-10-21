@@ -30,11 +30,10 @@ def loss_actor_and_critic(
 ) -> jnp.ndarray:
     state = state.astype(jnp.float32) / 255.
 
-    value_pred, logits = apply_fn(params_model, state)
+    value_pred, pi = apply_fn(params_model, state)
     value_pred = value_pred[:, 0]
 
-    probs = nn.softmax(logits, 1)
-    log_probs = jnp.log(probs)
+    log_prob = pi.log_prob(action[:,0])
 
     value_pred_clipped = value_old + (value_pred - value_old).clip(
         -clip_eps, clip_eps)
@@ -43,7 +42,6 @@ def loss_actor_and_critic(
     value_loss = 0.5 * jnp.maximum(value_losses,
                                    value_losses_clipped).mean()
 
-    log_prob = jnp.take_along_axis(log_probs, action, 1)[:, 0]
     ratio = jnp.exp(log_prob - log_pi_old)
     gae = (gae - gae.mean()) / (gae.std() + 1e-8)
     loss_actor1 = ratio * gae
@@ -52,7 +50,7 @@ def loss_actor_and_critic(
     loss_actor = -jnp.minimum(loss_actor1, loss_actor2)
     loss_actor = loss_actor.mean()
 
-    entropy = -((probs * log_probs).sum(1)).mean()
+    entropy = pi.entropy().mean()
 
     total_loss = loss_actor + critic_coeff * value_loss - entropy_coeff * entropy
 
@@ -64,8 +62,8 @@ def loss_actor_and_critic(
 def policy(apply_fn: Callable[..., Any],
            params: flax.core.frozen_dict.FrozenDict,
            state: np.ndarray):
-    value, logits = apply_fn(params, state)
-    return value, logits
+    value, pi = apply_fn(params, state)
+    return value, pi
 
 
 def select_action(
@@ -74,16 +72,15 @@ def select_action(
     rng: PRNGKey,
     sample: bool = False
 ) -> Tuple[jnp.ndarray, jnp.ndarray, jnp.ndarray, PRNGKey]:
-    value, logits = policy(train_state.apply_fn, train_state.params, state)
+    value, pi = policy(train_state.apply_fn, train_state.params, state)
 
-    rng, key = jax.random.split(rng)
     if sample:
-        action = jax.random.categorical(key, logits)
+        rng, key = jax.random.split(rng)
+        action = pi.sample(seed=key)
     else:
-        action = jnp.argmax(logits, 1)
-    log_probs = nn.log_softmax(logits)
-    log_prob = jnp.take_along_axis(
-        log_probs, jnp.expand_dims(action, 1), 1)[:, 0]
+        action = pi.mode()
+
+    log_prob = pi.log_prob(action)
     return action, log_prob, value[:, 0], rng
 
 

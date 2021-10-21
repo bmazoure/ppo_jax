@@ -8,7 +8,7 @@ import tqdm
 import wandb
 from absl import app, flags
 from flax.training.train_state import TrainState
-from flax.training import checkpoints
+# from flax.training import checkpoints
 from jax.random import PRNGKey
 
 from algo import get_transition, select_action, update
@@ -159,11 +159,12 @@ def main(argv):
                 "%s/ep_return_all" % (FLAGS.env_name): safe_mean([info['r'] for info in epinfo_buf_ood]),
                 "step": FLAGS.num_envs * step
             })
+            print('Eprew: %.3f'%safe_mean([info['r'] for info in epinfo_buf_id]))
+            print("Logits L1 norm: %.3f" % jnp.linalg.norm(train_state.params['params']['policy/fc_pi']['kernel']) )
 
         if ( step * FLAGS.num_envs ) % FLAGS.checkpoint_interval == 0:
             print('Saving model weights [skipping for now]')
-            checkpoints.save_checkpoint('./%s'%model_dir, train_state, step * FLAGS.num_envs)
-            # wandb.save('./%s/checkpoint_*' % model_dir)
+            # checkpoints.save_checkpoint('./%s'%model_dir, train_state, step * FLAGS.num_envs)
 
 if __name__ == '__main__':
     app.run(main)

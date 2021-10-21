@@ -3,6 +3,11 @@ from typing import Any, Optional, Tuple
 import flax.linen as nn
 import jax.numpy as jnp
 
+from tensorflow_probability.substrates import jax as tfp
+
+tfd = tfp.distributions
+tfb = tfp.bijectors
+
 
 def default_conv_init(scale: Optional[float] = jnp.sqrt(2)):
     return nn.initializers.xavier_uniform()
@@ -88,5 +93,7 @@ class TwinHeadModel(nn.Module):
         logits = nn.Dense(self.action_dim,
                         kernel_init=default_logits_init(),
                         name=self.prefix_actor + '/fc_pi')(z)
+
+        pi = tfd.Categorical(logits=logits)
         
-        return v, logits
+        return v, pi
