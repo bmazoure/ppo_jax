@@ -161,7 +161,7 @@ def update(
     return avg_metrics_dict, train_state, rng
 
 
-@partial(jax.jit, static_argnums=(8,))
+@partial(jax.jit, static_argnames=("clip_eps", "entropy_coeff", "critic_coeff"))
 def update_jit(
     train_state: TrainState,
     idxes: np.ndarray,
@@ -192,4 +192,4 @@ def update_jit(
 
         train_state = train_state.apply_gradients(grads=grads)
 
-        return train_state, total_loss
+    return train_state, total_loss
