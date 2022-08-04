@@ -39,7 +39,7 @@ The code automatically saves the most recent training state checkpoint, which ca
 To evaluate the pre-trained policies, run
 
 ```
-wget https://www.dropbox.com/s/2jrcf3ebexeppbt/ppo_weights_25M.zip?dl=1
+wget https://www.dropbox.com/s/4hskek45cpkbid0/ppo_weights_25M.zip?dl=1
 unzip ppo_weights_25M.zip?dl=1
 python evaluate_ppo.py --env_name="starpilot" --model_dir="model_weights"
 ```
